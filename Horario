@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horario de Clases</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Horario de Clases</h1>
+        <button id="add-day">Agregar Día</button>
+        <div class="schedule" id="schedule">
+            <!-- Días se agregarán dinámicamente aquí -->
+        </div>
+        <button id="saveSchedule">Guardar Horario</button>
+        <div id="output"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+/* styles.css */
+/* Otros estilos permanecen iguales */
+
+.day {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #eef;
+}
+
+.remove-day {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.remove-day:hover {
+    background-color: #c0392b;
+}
+
+
+// script.js
+function createCourseElement(course = {}) {
+    const courseDiv = document.createElement('div');
+    courseDiv.classList.add('course');
+
+    courseDiv.innerHTML = `
+        <input type="text" placeholder="Asignatura" class="subject" value="${course.subject || ''}">
+        <input type="text" placeholder="Aula" class="classroom" value="${course.classroom || ''}">
+        <input type="time" class="start-time" value="${course.startTime || ''}"> - 
+        <input type="time" class="end-time" value="${course.endTime || ''}">
+        <button class="remove-course">Eliminar Curso</button>
+    `;
+
+    courseDiv.querySelector('.remove-course').addEventListener('click', function() {
+        courseDiv.remove();
+    });
+
+    return courseDiv;
+}
+
+function createDayElement(dayName = '') {
+    const dayDiv = document.createElement('div');
+    dayDiv.classList.add('day');
+    dayDiv.setAttribute('data-day', dayName);
+
+    dayDiv.innerHTML = `
+        <h2 contenteditable="true">${dayName || 'Nuevo Día'}</h2>
+        <button class="add-course">Agregar Curso</button>
+        <div class="courses"></div>
+        <button class="remove-day">Eliminar Día</button>
+    `;
+
+    dayDiv.querySelector('.add-course').addEventListener('click', function() {
+        const coursesDiv = dayDiv.querySelector('.courses');
+        coursesDiv.appendChild(createCourseElement());
+    });
+
+    dayDiv.querySelector('.remove-day').addEventListener('click', function() {
+        dayDiv.remove();
+    });
+
+    return dayDiv;
+}
+
+document.getElementById('add-day').addEventListener('click', function() {
+    const dayName = prompt('Ingrese el nombre del día:');
+    if (dayName) {
+        const scheduleDiv = document.getElementById('schedule');
+        scheduleDiv.appendChild(createDayElement(dayName));
+    }
+});
+
+document.getElementById('saveSchedule').addEventListener('click', function() {
+    const days = document.querySelectorAll('.day');
+    let schedule = {};
+
+    days.forEach(day => {
+        const dayName = day.querySelector('h2').textContent;
+        const courses = day.querySelectorAll('.course');
+        schedule[dayName] = [];
+
+        courses.forEach(course => {
+            const subject = course.querySelector('.subject').value;
+            const classroom = course.querySelector('.classroom').value;
+            const startTime = course.querySelector('.start-time').value;
+            const endTime = course.querySelector('.end-time').value;
+
+            schedule[dayName].push({
+                subject: subject,
+                classroom: classroom,
+                startTime: startTime,
+                endTime: endTime
+            });
+        });
+    });
+
+    const output = document.getElementById('output');
+    output.innerHTML = `<h3>Tu Horario Guardado:</h3>`;
+    for (let day in schedule) {
+        output.innerHTML += `<h4>${day}</h4>`;
+        schedule[day].forEach(course => {
+            output.innerHTML += `<p>${course.subject} en ${course.classroom} de ${course.startTime} a ${course.endTime}</p>`;
+        });
+    }
+
+    localStorage.setItem('horario', JSON.stringify(schedule));
+});
+
+window.addEventListener('load', function() {
+    const savedSchedule = JSON.parse(localStorage.getItem('horario'));
+    if (savedSchedule) {
+        const scheduleDiv = document.getElementById('schedule');
+        for (let dayName in savedSchedule) {
+            const dayDiv = createDayElement(dayName);
+            const coursesDiv = dayDiv.querySelector('.courses');
+
+            savedSchedule[dayName].forEach(course => {
+                coursesDiv.appendChild(createCourseElement(course));
+            });
+
+            scheduleDiv.appendChild(dayDiv);
+        }
+    }
+});
